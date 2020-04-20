@@ -18,6 +18,9 @@ SECTIONS {
   .       = ALIGN( 8 );        
   /* allocate stack for svc mode     */
   .       = . + 0x00001000;  
+  tos_irq = .;
+  /* allocate stack for svc mode     */
+  .       = . + 0x00001000;  
   tos_svc = .;
   /* allocate stack for P1           */
   .       = . + 0x00001000;  
@@ -25,4 +28,8 @@ SECTIONS {
   /* allocate stack for P2           */
   .       = . + 0x00001000;  
   tos_P2  = .;
+  /* allocate stack for P3           */
+  .       = . + 0x00001000;  
+  tos_P3  = .;
+  
 }

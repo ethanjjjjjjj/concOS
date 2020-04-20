@@ -9,7 +9,10 @@
 
 void main_P1() {
   while( 1 ) {
-    write( STDOUT_FILENO, "P1", 2 ); yield();
+    write( STDOUT_FILENO, "P1", 2 );
+    for(int i=0;i<100000;i++){
+      asm volatile("nop");
+    }
   }
 
   exit( EXIT_SUCCESS );

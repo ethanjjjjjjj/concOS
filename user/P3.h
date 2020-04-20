@@ -5,15 +5,13 @@
  * LICENSE.txt within the associated archive or repository).
  */
 
-#include "P2.h"
+#ifndef __P3_H
+#define __P3_H
 
-void main_P2() {
-  while( 1 ) {
-    write( STDOUT_FILENO, "P2", 2 );
-    for(int i=0;i<100000;i++){
-      asm volatile("nop");
-    }
-  }
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
-  exit( EXIT_SUCCESS );
-}
+#include "libc.h"
+
+#endif

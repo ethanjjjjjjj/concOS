@@ -51,12 +51,18 @@ void schedule( ctx_t* ctx ) {
     procTab[ 1 ].status = STATUS_EXECUTING;         // update   execution status  of P_2
   }
   else if( executing->pid == procTab[ 1 ].pid ) {
-    dispatch( ctx, &procTab[ 1 ], &procTab[ 0 ] );  // context switch P_2 -> P_1
+    dispatch( ctx, &procTab[ 1 ], &procTab[ 2 ] );  // context switch P_2 -> P_1
 
     procTab[ 1 ].status = STATUS_READY;             // update   execution status  of P_2
-    procTab[ 0 ].status = STATUS_EXECUTING;         // update   execution status  of P_1
+    procTab[ 2 ].status = STATUS_EXECUTING;         // update   execution status  of P_1
   }
 
+  else if( executing->pid == procTab[ 2 ].pid ) {
+    dispatch( ctx, &procTab[ 2 ], &procTab[ 0 ] );  // context switch P_2 -> P_1
+
+    procTab[ 2 ].status = STATUS_READY;             // update   execution status  of P_2
+    procTab[ 0 ].status = STATUS_EXECUTING;         // update   execution status  of P_1
+  }
   return;
 }
 
@@ -64,8 +70,31 @@ extern void     main_P1();
 extern uint32_t tos_P1;
 extern void     main_P2(); 
 extern uint32_t tos_P2;
+extern void     main_P3(); 
+extern uint32_t tos_P3;
+
 
 void hilevel_handler_rst( ctx_t* ctx              ) { 
+  //enable timer
+
+
+  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
+  TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
+  TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt
+  TIMER0->Timer1Ctrl |= 0x00000080; // enable          timer
+
+  GICC0->PMR          = 0x000000F0; // unmask all            interrupts
+  GICD0->ISENABLER1  |= 0x00000010; // enable timer          interrupt
+  GICC0->CTLR         = 0x00000001; // enable GIC interface
+  GICD0->CTLR         = 0x00000001; // enable GIC distributor
+
+ 
+
+
+
+
+
   /* Invalidate all entries in the process table, so it's clear they are not
    * representing valid (i.e., active) processes.
    */
@@ -98,15 +127,45 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
   procTab[ 1 ].ctx.pc   = ( uint32_t )( &main_P2 );
   procTab[ 1 ].ctx.sp   = procTab[ 1 ].tos;
 
+
+  memset( &procTab[ 2 ], 0, sizeof( pcb_t ) ); // initialise 1-st PCB = P_3
+  procTab[ 2 ].pid      = 3;
+  procTab[ 2 ].status   = STATUS_READY;
+  procTab[ 2 ].tos      = ( uint32_t )( &tos_P3  );
+  procTab[ 2 ].ctx.cpsr = 0x50;
+  procTab[ 2 ].ctx.pc   = ( uint32_t )( &main_P3 );
+  procTab[ 2 ].ctx.sp   = procTab[ 2 ].tos;
+
   /* Once the PCBs are initialised, we arbitrarily select the 0-th PCB to be 
    * executed: there is no need to preserve the execution context, since it 
    * is invalid on reset (i.e., no process was previously executing).
    */
-
+ int_enable_irq();
   dispatch( ctx, NULL, &procTab[ 0 ] );
 
   return;
 }
+
+
+void hilevel_handler_irq(ctx_t* ctx) {
+  // Step 2: read  the interrupt identifier so we know the source.
+
+  uint32_t id = GICC0->IAR;
+
+  // Step 4: handle the interrupt, then clear (or reset) the source.
+
+  if( id == GIC_SOURCE_TIMER0 ) {
+    PL011_putc( UART0, 'T', true ); TIMER0->Timer1IntClr = 0x01;
+    schedule(ctx);
+  }
+
+  // Step 5: write the interrupt identifier to signal we're done.
+
+  GICC0->EOIR = id;
+
+  return;
+}
+
 
 void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) { 
   /* Based on the identifier (i.e., the immediate operand) extracted from the

@@ -21,11 +21,12 @@ int_data:            ldr   pc, int_addr_rst        @ reset                 vecto
                      b     .                       @ pre-fetch abort       vector -> ABT mode
                      b     .                       @      data abort       vector -> ABT mode
                      b     .                       @ reserved
-                     b     .                       @ IRQ                   vector -> IRQ mode
+                     ldr   pc, int_addr_irq                      @ IRQ                   vector -> IRQ mode
                      b     .                       @ FIQ                   vector -> FIQ mode
 
 int_addr_rst:        .word lolevel_handler_rst
 int_addr_svc:        .word lolevel_handler_svc
+int_addr_irq:        .word lolevel_handler_irq
 	
 .global int_init
 	

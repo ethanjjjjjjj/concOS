@@ -20,6 +20,7 @@
 
 #include   "GIC.h"
 #include "PL011.h"
+#include "SP804.h"
 
 // Include functionality relating to the   kernel.
 
@@ -39,7 +40,7 @@
  * - a type that captures a process PCB.
  */
 
-#define MAX_PROCS 2
+#define MAX_PROCS 3
 
 typedef int pid_t;
 
