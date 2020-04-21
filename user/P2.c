@@ -5,9 +5,9 @@
  * LICENSE.txt within the associated archive or repository).
  */
 
-#include "P1.h"
+#include "P2.h"
 
-void main_P1() {
+void main_P2() {
   while( 1 ) {
     write( STDOUT_FILENO, "P2", 2 );
     for(int i=0;i<1000000;i++){
