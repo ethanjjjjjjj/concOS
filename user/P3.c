@@ -10,9 +10,10 @@
 void main_P3() {
   while( 1 ) {
     write( STDOUT_FILENO, "P3", 2 );
-    for(int i=0;i<100000;i++){
+    for(int i=0;i<1000000;i++){
       asm volatile("nop");
     }
+    yield();
   }
 
   exit( EXIT_SUCCESS );

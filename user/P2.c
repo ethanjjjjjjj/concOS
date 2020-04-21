@@ -10,7 +10,7 @@
 void main_P2() {
   while( 1 ) {
     write( STDOUT_FILENO, "P2", 2 );
-    for(int i=0;i<100000;i++){
+    for(int i=0;i<1000000;i++){
       asm volatile("nop");
     }
   }
