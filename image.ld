@@ -28,4 +28,8 @@ SECTIONS {
   /* allocate stack for P2           */
   .       = . + 0x00001000;  
   tos_P2  = .;
+
+.heap : {end    = .;_heap_start = .;.             = . + 0x00001000;_heap_end    = .;}
+
+
 }
