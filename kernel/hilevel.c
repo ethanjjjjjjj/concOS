@@ -17,7 +17,7 @@
  *   to execute.
  */
 
-pcb_t procTab[ MAX_PROCS ]; pcb_t* executing = NULL;
+pcb_t procTab[ PROC_TABLE_SIZE ]; pcb_t* executing = NULL;
 
 void dispatch( ctx_t* ctx, pcb_t* prev, pcb_t* next ) {
   char prev_pid = '?', next_pid = '?';
@@ -44,20 +44,23 @@ void dispatch( ctx_t* ctx, pcb_t* prev, pcb_t* next ) {
 }
 
 void schedule( ctx_t* ctx ) {
-  if     ( executing->pid == procTab[ 0 ].pid ) {
-    dispatch( ctx, &procTab[ 0 ], &procTab[ 1 ] );  // context switch P_1 -> P_2
+  
+  //schedule next only if process ready
 
-    procTab[ 0 ].status = STATUS_READY;             // update   execution status  of P_1 
-    procTab[ 1 ].status = STATUS_EXECUTING;         // update   execution status  of P_2
+  for(int i=executing->pid;i<(executing->pid+PROC_TABLE_SIZE);i++){   //loops until a ready process is found in the table or until every process has been checked
+
+    if (procTab[i%PROC_TABLE_SIZE].status==STATUS_READY){
+      dispatch(ctx,&procTab[executing->pid-1],&procTab[i%PROC_TABLE_SIZE]);
+      procTab[ executing->pid -1].status = STATUS_READY;
+      procTab[ i%PROC_TABLE_SIZE].status = STATUS_EXECUTING;
+      return;
+    }
+
   }
-  else if( executing->pid == procTab[ 1 ].pid ) {
-    dispatch( ctx, &procTab[ 1 ], &procTab[ 0 ] );  // context switch P_2 -> P_1
 
-    procTab[ 1 ].status = STATUS_READY;             // update   execution status  of P_2
-    procTab[ 0 ].status = STATUS_EXECUTING;         // update   execution status  of P_1
-  }
 
-  return;
+
+  return;  //current process continues to execute is there is no other ready process
 }
 
 extern void     main_P1(); 
@@ -91,7 +94,7 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
    * representing valid (i.e., active) processes.
    */
 
-  for( int i = 0; i < MAX_PROCS; i++ ) {
+  for( int i = 0; i < PROC_TABLE_SIZE; i++ ) {
     procTab[ i ].status = STATUS_INVALID;
   }
 

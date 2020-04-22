@@ -40,7 +40,7 @@
  * - a type that captures a process PCB.
  */
 
-#define MAX_PROCS 2
+#define PROC_TABLE_SIZE 2
 
 typedef int pid_t;
 
