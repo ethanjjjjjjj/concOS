@@ -43,20 +43,41 @@ void dispatch( ctx_t* ctx, pcb_t* prev, pcb_t* next ) {
   return;
 }
 
+void increasePriorities(ctx_t* ctx){
+  for(int i=0;i<PROC_TABLE_SIZE;i++){
+    if(procTab[ i].status == STATUS_READY){
+      procTab[i].priority++;
+    }
+  }
+  return;
+}
+
+
+
 void schedule( ctx_t* ctx ) {
   
   //schedule next only if process ready
 
-  for(int i=executing->pid;i<(executing->pid+PROC_TABLE_SIZE);i++){   //loops until a ready process is found in the table or until every process has been checked
 
-    if (procTab[i%PROC_TABLE_SIZE].status==STATUS_READY){
-      dispatch(ctx,&procTab[executing->pid-1],&procTab[i%PROC_TABLE_SIZE]);
-      procTab[ executing->pid -1].status = STATUS_READY;
-      procTab[ i%PROC_TABLE_SIZE].status = STATUS_EXECUTING;
-      return;
+  pcb_t* highestProc=executing;
+  int highestPrio=executing->priority;
+
+  for(int i=0;i<PROC_TABLE_SIZE;i++){
+    if((procTab[i].status==STATUS_READY)&&(procTab[i].priority>highestPrio)){
+      highestProc=&procTab[i];
+      highestPrio=procTab[i].priority;
     }
 
   }
+
+
+  if(highestProc !=executing){
+    executing->status=STATUS_READY;
+      highestProc->status=STATUS_EXECUTING;
+      dispatch(ctx,executing,highestProc);
+      
+  }
+  
 
 
 
@@ -108,8 +129,9 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
 
   memset( &procTab[ 0 ], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
   procTab[ 0 ].pid      = 1;
-  procTab[ 0 ].status   = STATUS_READY;
+  procTab[ 0 ].status   = STATUS_EXECUTING;
   procTab[ 0 ].tos      = ( uint32_t )( &tos_P1  );
+  procTab[0].priority=0;
   procTab[ 0 ].ctx.cpsr = 0x50;
   procTab[ 0 ].ctx.pc   = ( uint32_t )( &main_P1 );
   procTab[ 0 ].ctx.sp   = procTab[ 0 ].tos;
@@ -118,6 +140,7 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
   procTab[ 1 ].pid      = 2;
   procTab[ 1 ].status   = STATUS_READY;
   procTab[ 1 ].tos      = ( uint32_t )( &tos_P2  );
+  procTab[1].priority=0;
   procTab[ 1 ].ctx.cpsr = 0x50;
   procTab[ 1 ].ctx.pc   = ( uint32_t )( &main_P2 );
   procTab[ 1 ].ctx.sp   = procTab[ 1 ].tos;
@@ -143,8 +166,12 @@ void hilevel_handler_irq(ctx_t* ctx) {
   // Step 4: handle the interrupt, then clear (or reset) the source.
 
   if( id == GIC_SOURCE_TIMER0 ) {
-    PL011_putc( UART0, 'T', true ); TIMER0->Timer1IntClr = 0x01;
+    PL011_putc( UART0, 'T', true ); 
+    increasePriorities(ctx);
     schedule(ctx);
+    PL011_putc( UART0, 'T', true );
+    TIMER0->Timer1IntClr = 0x01;
+    
   }
 
   // Step 5: write the interrupt identifier to signal we're done.

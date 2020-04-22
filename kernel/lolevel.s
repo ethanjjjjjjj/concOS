@@ -52,14 +52,13 @@ lolevel_handler_svc: sub   lr, lr, #0              @ correct return address
                      stmia sp, { r0-r12, sp, lr }^ @ preserve USR registers
                      mrs   r0, spsr                @ move     USR        CPSR
                      stmdb sp!, { r0, lr }         @ store    USR PC and CPSR
-         
                      mov   r0, sp                  @ set    high-level C function arg. = SP
                      ldr   r1, [ lr, #-4 ]         @ load                     svc instruction
                      bic   r1, r1, #0xFF000000     @ set    high-level C function arg. = svc immediate
                      bl    hilevel_handler_svc     @ invoke high-level C function
-        
                      ldmia sp!, { r0, lr }         @ load     USR mode PC and CPSR
                      msr   spsr, r0                @ move     USR mode        CPSR
                      ldmia sp, { r0-r12, sp, lr }^ @ restore  USR mode registers
                      add   sp, sp, #60             @ update   SVC mode SP
                      movs  pc, lr                  @ return from interrupt
+                     
