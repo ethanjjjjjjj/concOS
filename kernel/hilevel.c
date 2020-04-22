@@ -59,19 +59,19 @@ void schedule( ctx_t* ctx ) {
   //schedule next only if process ready
 
 
-  pcb_t* highestProc=executing;
-  int highestPrio=executing->priority;
+  pcb_t* highestProc=executing;    //baseline to compare other processes priorities to
+  int highestPrio=executing->priority;   //current highest priority
 
-  for(int i=0;i<PROC_TABLE_SIZE;i++){
-    if((procTab[i].status==STATUS_READY)&&(procTab[i].priority>highestPrio)){
-      highestProc=&procTab[i];
-      highestPrio=procTab[i].priority;
+  for(int i=0;i<PROC_TABLE_SIZE;i++){     //loop through whole process table
+    if((procTab[i].status==STATUS_READY)&&(procTab[i].priority>highestPrio)){    //check if each process is ready to execute and if it's priority is higher than the previous highest
+      highestProc=&procTab[i];  //update highest priority process
+      highestPrio=procTab[i].priority; //update highest priority
     }
 
   }
 
 
-  if(highestProc !=executing){
+  if(highestProc !=executing){   //check whether new process is the same as the current process (no point performing a context switch if it's the same process)
     executing->status=STATUS_READY;
       highestProc->status=STATUS_EXECUTING;
       dispatch(ctx,executing,highestProc);
@@ -140,7 +140,7 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
   procTab[ 1 ].pid      = 2;
   procTab[ 1 ].status   = STATUS_READY;
   procTab[ 1 ].tos      = ( uint32_t )( &tos_P2  );
-  procTab[1].priority=0;
+  procTab[1].priority=10;
   procTab[ 1 ].ctx.cpsr = 0x50;
   procTab[ 1 ].ctx.pc   = ( uint32_t )( &main_P2 );
   procTab[ 1 ].ctx.sp   = procTab[ 1 ].tos;
