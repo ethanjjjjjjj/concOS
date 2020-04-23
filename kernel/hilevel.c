@@ -6,6 +6,7 @@
  */
 
 #include "hilevel.h"
+#include <stdlib.h>
 
 /* We assume there will be two user processes, stemming from execution of the 
  * two user programs P1 and P2, and can therefore
@@ -17,7 +18,7 @@
  *   to execute.
  */
 
-pcb_t procTab[ PROC_TABLE_SIZE ]; pcb_t* executing = NULL;
+pcb_t* procTab[ PROC_TABLE_SIZE ]; pcb_t* executing = NULL;
 
 void dispatch( ctx_t* ctx, pcb_t* prev, pcb_t* next ) {
   char prev_pid = '?', next_pid = '?';
@@ -45,8 +46,8 @@ void dispatch( ctx_t* ctx, pcb_t* prev, pcb_t* next ) {
 
 void increasePriorities(ctx_t* ctx){
   for(int i=0;i<PROC_TABLE_SIZE;i++){
-    if(procTab[ i].status == STATUS_READY){
-      procTab[i].priority++;
+    if(procTab[ i]->status == STATUS_READY){
+      procTab[i]->priority++;
     }
   }
   return;
@@ -63,9 +64,9 @@ void schedule( ctx_t* ctx ) {
   int highestPrio=executing->priority;   //current highest priority
 
   for(int i=0;i<PROC_TABLE_SIZE;i++){     //loop through whole process table
-    if((procTab[i].status==STATUS_READY)&&(procTab[i].priority>highestPrio)){    //check if each process is ready to execute and if it's priority is higher than the previous highest
-      highestProc=&procTab[i];  //update highest priority process
-      highestPrio=procTab[i].priority; //update highest priority
+    if((procTab[i]->status==STATUS_READY)&&(procTab[i]->priority>highestPrio)){    //check if each process is ready to execute and if it's priority is higher than the previous highest
+      highestProc=procTab[i];  //update highest priority process
+      highestPrio=procTab[i]->priority; //update highest priority
     }
 
   }
@@ -92,6 +93,7 @@ extern uint32_t tos_P2;
 extern void main_console();
 extern uint32_t tos_console;
 
+int CURRENT_PROCS=0;
 
 void hilevel_handler_rst( ctx_t* ctx              ) { 
   //enable timer
@@ -118,9 +120,7 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
    * representing valid (i.e., active) processes.
    */
 
-  for( int i = 0; i < PROC_TABLE_SIZE; i++ ) {
-    procTab[ i ].status = STATUS_INVALID;
-  }
+ 
 
   /* Automatically execute the user programs P1 and P2 by setting the fields
    * in two associated PCBs.  Note in each case that
@@ -154,15 +154,27 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
 
 //initialise console process table entry
 
-memset( &procTab[ 0 ], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
-  procTab[ 0 ].pid      = 0;
-  procTab[ 0 ].status   = STATUS_READY;
-  procTab[ 0 ].tos      = ( uint32_t )( &tos_console  );
-  procTab[0].priority=0;
-  procTab[ 0 ].ctx.cpsr = 0x50;
-  procTab[ 0 ].ctx.pc   = ( uint32_t )( &main_console );
-  procTab[ 0 ].ctx.sp   = procTab[ 0 ].tos;
+pcb_t *procTab[PROC_TABLE_SIZE];
+procTab[0]=(pcb_t*)malloc(sizeof(pcb_t));
+procTab[1]=(pcb_t*)malloc(sizeof(pcb_t));
 
+procTab[ 0 ]->status = STATUS_INVALID;
+
+
+
+
+memset( procTab[0], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
+
+  procTab[ 0 ]->pid      = 0;
+  procTab[ 0 ]->status   = STATUS_READY;
+  procTab[ 0 ]->tos      = ( uint32_t )( &tos_console  );
+  procTab[0]->priority=0;
+  procTab[ 0 ]->ctx.cpsr = 0x50;
+  procTab[ 0 ]->ctx.pc   = ( uint32_t )( &main_console );
+  procTab[ 0 ]->ctx.sp   = procTab[ 0 ]->tos;
+
+
+  CURRENT_PROCS++;
 
 
 
@@ -173,9 +185,28 @@ memset( &procTab[ 0 ], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
    * is invalid on reset (i.e., no process was previously executing).
    */
  int_enable_irq();
-  dispatch( ctx, NULL, &procTab[ 0 ] );
+  dispatch( ctx, NULL, procTab[ 0 ] );
 
   return;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 
@@ -242,7 +273,7 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
 
     case 0x03:{  //fork
 
-      
+
 
     }
 
