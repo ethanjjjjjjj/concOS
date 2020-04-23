@@ -106,7 +106,9 @@ void main_console() {
       void* addr = load( cmd_argv[ 1 ] );
 
       if( addr != NULL ) {
-        if( 0 == fork() ) {
+        int val=fork();
+        if( 0 == val ) {
+          
           exec( addr );
         }
       }

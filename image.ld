@@ -32,7 +32,7 @@ SECTIONS {
   .       = . + 0x00001000;  
   tos_P2  = .;
   /* allocate stack for P2           */
-  .       = . + 0x00001000;  
+  .       = . + 0x00010000;  
   tos_console  = .;
   
 

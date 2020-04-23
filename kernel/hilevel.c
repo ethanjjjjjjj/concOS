@@ -94,6 +94,7 @@ extern void main_console();
 extern uint32_t tos_console;
 
 int CURRENT_PROCS=0;
+pcb_t *procTab[PROC_TABLE_SIZE];
 
 void hilevel_handler_rst( ctx_t* ctx              ) { 
   //enable timer
@@ -154,19 +155,19 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
 
 //initialise console process table entry
 
-pcb_t *procTab[PROC_TABLE_SIZE];
+
 procTab[0]=(pcb_t*)malloc(sizeof(pcb_t));
-procTab[1]=(pcb_t*)malloc(sizeof(pcb_t));
+
 
 procTab[ 0 ]->status = STATUS_INVALID;
 
 
 
 
-memset( procTab[0], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
+//memset(&procTab[0]->ctx, 0, sizeof(ctx_t) ); // initialise 0-th PCB = P_1
 
   procTab[ 0 ]->pid      = 0;
-  procTab[ 0 ]->status   = STATUS_READY;
+  procTab[ 0 ]->status   = STATUS_EXECUTING;
   procTab[ 0 ]->tos      = ( uint32_t )( &tos_console  );
   procTab[0]->priority=0;
   procTab[ 0 ]->ctx.cpsr = 0x50;
@@ -272,14 +273,31 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
     }
 
     case 0x03:{  //fork
-
-
-
+      //realloc(procTab,CURRENT_PROCS+1);
+      procTab[CURRENT_PROCS]=(pcb_t*)malloc(sizeof(pcb_t));
+      memcpy(procTab[CURRENT_PROCS],executing,sizeof(pcb_t));
+      procTab[CURRENT_PROCS]->status=STATUS_READY;
+      memcpy(&procTab[CURRENT_PROCS]->ctx,ctx,sizeof(ctx_t));
+      procTab[CURRENT_PROCS]->ctx.gpr[0]=0;
+      procTab[CURRENT_PROCS]->ctx.sp= (procTab[CURRENT_PROCS-1]->ctx.sp)-0x00001000;
+      ctx->gpr[0]=CURRENT_PROCS;
+      procTab[CURRENT_PROCS]->pid=CURRENT_PROCS;
+      CURRENT_PROCS++;
+      break;
     }
 
-    case 0x04:{}
+    case 0x04:{ //exit
 
-    case 0x05:{}
+      executing->status=STATUS_TERMINATED;
+      schedule(ctx);
+      break;
+    }
+
+    case 0x05:{//exec
+      ctx->pc=ctx->gpr[0];
+      break;
+
+    }
 
     case 0x06:{}
 
