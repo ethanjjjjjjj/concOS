@@ -89,6 +89,9 @@ extern uint32_t tos_P1;
 extern void     main_P2(); 
 extern uint32_t tos_P2;
 
+extern void main_console();
+extern uint32_t tos_console;
+
 
 void hilevel_handler_rst( ctx_t* ctx              ) { 
   //enable timer
@@ -127,9 +130,12 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
    * - the PC and SP values match the entry point and top of stack. 
    */
 
+
+
+ /*
   memset( &procTab[ 0 ], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
   procTab[ 0 ].pid      = 1;
-  procTab[ 0 ].status   = STATUS_EXECUTING;
+  procTab[ 0 ].status   = STATUS_READY;
   procTab[ 0 ].tos      = ( uint32_t )( &tos_P1  );
   procTab[0].priority=0;
   procTab[ 0 ].ctx.cpsr = 0x50;
@@ -144,6 +150,21 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
   procTab[ 1 ].ctx.cpsr = 0x50;
   procTab[ 1 ].ctx.pc   = ( uint32_t )( &main_P2 );
   procTab[ 1 ].ctx.sp   = procTab[ 1 ].tos;
+*/
+
+//initialise console process table entry
+
+memset( &procTab[ 0 ], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
+  procTab[ 0 ].pid      = 0;
+  procTab[ 0 ].status   = STATUS_READY;
+  procTab[ 0 ].tos      = ( uint32_t )( &tos_console  );
+  procTab[0].priority=0;
+  procTab[ 0 ].ctx.cpsr = 0x50;
+  procTab[ 0 ].ctx.pc   = ( uint32_t )( &main_console );
+  procTab[ 0 ].ctx.sp   = procTab[ 0 ].tos;
+
+
+
 
 
 
@@ -211,6 +232,30 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
 
       break;
     }
+
+
+    case 0x02:{  //read
+
+
+
+    }
+
+    case 0x03:{  //fork
+
+      
+
+    }
+
+    case 0x04:{}
+
+    case 0x05:{}
+
+    case 0x06:{}
+
+    case 0x07:{}
+
+    
+
 
     default   : { // 0x?? => unknown/unsupported
       break;
