@@ -40,7 +40,7 @@
  * - a type that captures a process PCB.
  */
 
-#define PROC_TABLE_SIZE 2
+#define PROC_TABLE_SIZE 50
 
 
 

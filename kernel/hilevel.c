@@ -53,31 +53,34 @@ void increasePriorities(ctx_t* ctx){
   return;
 }
 
-
+int CURRENT_PROCS=0;
 
 void schedule( ctx_t* ctx ) {
   
   //schedule next only if process ready
+ pcb_t* highestProc;
+ int highestPrio=-1;
+  
 
+  
 
-  pcb_t* highestProc=executing;    //baseline to compare other processes priorities to
-  int highestPrio=executing->priority;   //current highest priority
-
-  for(int i=0;i<PROC_TABLE_SIZE;i++){     //loop through whole process table
+  for(int i=0;i<CURRENT_PROCS;i++){     //loop through whole process table
     if((procTab[i]->status==STATUS_READY)&&(procTab[i]->priority>highestPrio)){    //check if each process is ready to execute and if it's priority is higher than the previous highest
       highestProc=procTab[i];  //update highest priority process
       highestPrio=procTab[i]->priority; //update highest priority
     }
-
   }
 
-
-  if(highestProc !=executing){   //check whether new process is the same as the current process (no point performing a context switch if it's the same process)
+  if(executing->status==STATUS_TERMINATED){
+    highestProc->status=STATUS_EXECUTING;
+    dispatch(ctx,executing,highestProc);
+  }
+  else if(highestPrio>executing->priority){
     executing->status=STATUS_READY;
-      highestProc->status=STATUS_EXECUTING;
-      dispatch(ctx,executing,highestProc);
-      
+    highestProc->status=STATUS_EXECUTING;
+    dispatch(ctx,executing,highestProc);
   }
+
   
 
 
@@ -93,7 +96,7 @@ extern uint32_t tos_P2;
 extern void main_console();
 extern uint32_t tos_console;
 
-int CURRENT_PROCS=0;
+
 pcb_t *procTab[PROC_TABLE_SIZE];
 
 void hilevel_handler_rst( ctx_t* ctx              ) { 
@@ -273,8 +276,8 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
     }
 
     case 0x03:{  //fork
-      //realloc(procTab,CURRENT_PROCS+1);
-      procTab[CURRENT_PROCS]=(pcb_t*)malloc(sizeof(pcb_t));
+      //realloc(&procTab,CURRENT_PROCS+1);
+      procTab[CURRENT_PROCS]=(pcb_t*)malloc(sizeof(pcb_t));  
       memcpy(procTab[CURRENT_PROCS],executing,sizeof(pcb_t));
       procTab[CURRENT_PROCS]->status=STATUS_READY;
       memcpy(&procTab[CURRENT_PROCS]->ctx,ctx,sizeof(ctx_t));
