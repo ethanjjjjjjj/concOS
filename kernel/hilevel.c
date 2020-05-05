@@ -136,25 +136,7 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
 
 
 
- /*
-  memset( &procTab[ 0 ], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
-  procTab[ 0 ].pid      = 1;
-  procTab[ 0 ].status   = STATUS_READY;
-  procTab[ 0 ].tos      = ( uint32_t )( &tos_P1  );
-  procTab[0].priority=0;
-  procTab[ 0 ].ctx.cpsr = 0x50;
-  procTab[ 0 ].ctx.pc   = ( uint32_t )( &main_P1 );
-  procTab[ 0 ].ctx.sp   = procTab[ 0 ].tos;
-
-  memset( &procTab[ 1 ], 0, sizeof( pcb_t ) ); // initialise 1-st PCB = P_2
-  procTab[ 1 ].pid      = 2;
-  procTab[ 1 ].status   = STATUS_READY;
-  procTab[ 1 ].tos      = ( uint32_t )( &tos_P2  );
-  procTab[1].priority=10;
-  procTab[ 1 ].ctx.cpsr = 0x50;
-  procTab[ 1 ].ctx.pc   = ( uint32_t )( &main_P2 );
-  procTab[ 1 ].ctx.sp   = procTab[ 1 ].tos;
-*/
+ 
 
 //initialise console process table entry
 
