@@ -26,6 +26,7 @@
 
 #include "lolevel.h"
 #include     "int.h"
+#include "libc.h"
 
 /* The kernel source code is made simpler and more consistent by using 
  * some human-readable type definitions:
@@ -67,6 +68,7 @@ typedef struct {
   uint32_t    tos; // address of Top of Stack (ToS)
      ctx_t    ctx; // execution context
      int priority;
+  pipePointers* blocking; 
 } pcb_t;
 
 #endif
