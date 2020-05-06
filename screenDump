@@ -1,0 +1,8 @@
+screen -t "qemu" make launch-qemu
+split -v
+focus
+screen -t "gdb" make launch-gdb
+split
+focus
+screen -t "console" make launch-console
+focus
