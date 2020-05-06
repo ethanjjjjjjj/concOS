@@ -49,6 +49,17 @@ typedef int pid_t;
 #define STDOUT_FILENO ( 1 )
 #define STDERR_FILENO ( 2 )
 
+
+typedef struct{
+    int read;
+    int write;
+    int end;
+    bool unblock;
+
+}pipePointers;
+
+
+
 // convert ASCII string x into integer r
 extern int  atoi( char* x        );
 // convert integer x into ASCII string r
@@ -73,5 +84,9 @@ extern void exec( const void* x );
 extern int  kill( pid_t pid, int x );
 // for process identified by pid, set  priority to x
 extern void nice( pid_t pid, int x );
+
+
+
+
 
 #endif
