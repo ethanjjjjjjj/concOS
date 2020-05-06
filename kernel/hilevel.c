@@ -6,6 +6,7 @@
  */
 
 #include "hilevel.h"
+#include "libc.h"
 #include <stdlib.h>
 
 /* We assume there will be two user processes, stemming from execution of the 
@@ -68,6 +69,13 @@ void schedule( ctx_t* ctx ) {
     if((procTab[i]->status==STATUS_READY)&&(procTab[i]->priority>highestPrio)){    //check if each process is ready to execute and if it's priority is higher than the previous highest
       highestProc=procTab[i];  //update highest priority process
       highestPrio=procTab[i]->priority; //update highest priority
+    }
+    else if(procTab[i]->status==STATUS_WAITING){
+      if(procTab[i]->blocking->unblock==true){
+        procTab[i]->status=STATUS_READY;
+        procTab[i]->blocking=NULL;
+        
+      }
     }
   }
 
@@ -240,10 +248,34 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       int   fd = ( int   )( ctx->gpr[ 0 ] );  
       char*  x = ( char* )( ctx->gpr[ 1 ] );  
       int    n = ( int   )( ctx->gpr[ 2 ] ); 
-
-      for( int i = 0; i < n; i++ ) {
+      switch (fd){
+        case 1:
+          for( int i = 0; i < n; i++ ) {
         PL011_putc( UART0, *x++, true );
+        }
+        break;
+
+
+        default:
+        pipePointers* p=(pipePointers*) fd;
+
+
+        if((p->end - p->write)>n*4){  //check buffer has enough space
+          memcpy(p->write,x,n*4);   //copy string into the buffer
+          p->write+=n*4;//update the point at which it writes to the buffer
+        }
+        else if(n*4<64){   //if an empty buffer would have enough space for the string:
+          executing->status=STATUS_WAITING;  //set status to waiting, blocking the process from continuing
+          executing->blocking=p; //update the process table with which pipe is blocking, the scheduler can check this to determine whether to continue execution of the process
+          ctx->pc-=4;   //decrement the program counter by 4 so that the program will run write again when it has been unblocked
+          schedule(ctx);  //call the scheduler to execute another process until this one has been unblocked
+        }
+
+         break;
+
+
       }
+      
       
       ctx->gpr[ 0 ] = n;
 
