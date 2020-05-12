@@ -6,14 +6,27 @@
  */
 
 #include "P1.h"
-
+#include "libc.h"
+#include <stdlib.h>
 void main_P1() {
-  while( 1 ) {
-    write( STDOUT_FILENO, "P1", 2 );
-    for(int i=0;i<1000000;i++){
-      asm volatile("nop");
-    }
-  }
+  pipePointers *p =pipe(); 
+  int pid=fork();
+  
+  
+   
+  
+  if(pid!=0){
 
-  exit( EXIT_SUCCESS );
-}
+    char *x=(char*)malloc(41*4);
+    read((uint32_t)p,x,21);
+    write(STDOUT_FILENO,"read:",6);
+    write(STDOUT_FILENO,x,41);
+  }
+  else if(pid==0){
+    //write(STDOUT_FILENO,"writing",8);
+    write(STDOUT_FILENO,"written P1",11);
+    write((uint32_t)p,"P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1", 41 );
+  }
+  
+
+  exit( EXIT_SUCCESS );}

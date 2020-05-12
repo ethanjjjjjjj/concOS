@@ -33,13 +33,18 @@ void gets( char* x, int n ) {
  * one: given a program name from the set of programs statically linked
  * into the kernel image, it returns a pointer to the entry point.
  */
+extern void main_P1(); 
 
 extern void main_P3(); 
 extern void main_P4(); 
 extern void main_P5(); 
 
 void* load( char* x ) {
-  if     ( 0 == strcmp( x, "P3" ) ) {
+
+  if     ( 0 == strcmp( x, "P1" ) ) {
+    return &main_P1;
+  }
+  else if     ( 0 == strcmp( x, "P3" ) ) {
     return &main_P3;
   }
   else if( 0 == strcmp( x, "P4" ) ) {

@@ -68,7 +68,9 @@ typedef struct {
   uint32_t    tos; // address of Top of Stack (ToS)
      ctx_t    ctx; // execution context
      int priority;
-  pipePointers* blocking; 
+  pipePointers* rblocking; //read pipe blocking
+  pipePointers* wblocking; //write pipe blocking
+  
 } pcb_t;
 
 #endif

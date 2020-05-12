@@ -8,6 +8,8 @@
 #include "hilevel.h"
 #include "libc.h"
 #include <stdlib.h>
+#include <limits.h>
+
 
 /* We assume there will be two user processes, stemming from execution of the 
  * two user programs P1 and P2, and can therefore
@@ -59,23 +61,30 @@ int CURRENT_PROCS=0;
 void schedule( ctx_t* ctx ) {
   
   //schedule next only if process ready
- pcb_t* highestProc;
+ pcb_t* highestProc=NULL;
  int highestPrio=-1;
   
 
   
 
   for(int i=0;i<CURRENT_PROCS;i++){     //loop through whole process table
+    
+    if((procTab[i]->status)==STATUS_WAITING){
+
+      if(procTab[i]->rblocking!=NULL && procTab[i]->rblocking->runblock){
+        procTab[i]->rblocking->runblock=false;
+        procTab[i]->status=STATUS_READY;
+        procTab[i]->rblocking=NULL;
+        
+      }else if(procTab[i]->wblocking!=NULL && procTab[i]->wblocking->wunblock){
+        procTab[i]->wblocking->wunblock=false;
+        procTab[i]->status=STATUS_READY;
+        procTab[i]->wblocking=NULL;
+      }
+    }
     if((procTab[i]->status==STATUS_READY)&&(procTab[i]->priority>highestPrio)){    //check if each process is ready to execute and if it's priority is higher than the previous highest
       highestProc=procTab[i];  //update highest priority process
       highestPrio=procTab[i]->priority; //update highest priority
-    }
-    else if(procTab[i]->status==STATUS_WAITING){
-      if(procTab[i]->blocking->unblock==true){
-        procTab[i]->status=STATUS_READY;
-        procTab[i]->blocking=NULL;
-        
-      }
     }
   }
 
@@ -83,11 +92,23 @@ void schedule( ctx_t* ctx ) {
     highestProc->status=STATUS_EXECUTING;
     dispatch(ctx,executing,highestProc);
   }
-  else if(highestPrio>executing->priority){
+  else if(highestPrio>(executing->priority)){
     executing->status=STATUS_READY;
     highestProc->status=STATUS_EXECUTING;
     dispatch(ctx,executing,highestProc);
   }
+  else if(executing->status==STATUS_WAITING){
+    highestProc->status=STATUS_EXECUTING;
+    dispatch(ctx,executing,highestProc);
+  }
+  /*else if(executing->status==STATUS_WAITING){ //if current process is waiting and there is nothing else to run wait for scheduler to call again
+
+    for (;;) {
+        sleep(UINT_MAX); //sleep as there is no process to 
+    }
+  
+  }*/
+  
 
   
 
@@ -162,10 +183,13 @@ procTab[ 0 ]->status = STATUS_INVALID;
   procTab[ 0 ]->pid      = 0;
   procTab[ 0 ]->status   = STATUS_EXECUTING;
   procTab[ 0 ]->tos      = ( uint32_t )( &tos_console  );
-  procTab[0]->priority=0;
+  procTab[ 0 ]->priority=0;
   procTab[ 0 ]->ctx.cpsr = 0x50;
   procTab[ 0 ]->ctx.pc   = ( uint32_t )( &main_console );
   procTab[ 0 ]->ctx.sp   = procTab[ 0 ]->tos;
+  procTab[0]->rblocking=NULL;
+  procTab[0]->wblocking=NULL;
+  
 
 
   CURRENT_PROCS++;
@@ -249,44 +273,91 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       char*  x = ( char* )( ctx->gpr[ 1 ] );  
       int    n = ( int   )( ctx->gpr[ 2 ] ); 
       switch (fd){
-        case 1:
+        case 1:{
           for( int i = 0; i < n; i++ ) {
         PL011_putc( UART0, *x++, true );
         }
         break;
 
-
-        default:
+      }      
+      default:{
         pipePointers* p=(pipePointers*) fd;
+        int origN=n;
+        while(n>0){
+          if(p->write==p->end){
+            executing->status=STATUS_WAITING;  //set status to waiting, blocking the process from continuing
+            executing->wblocking=p; //update the process table with which pipe is blocking, the scheduler can check this to determine whether to continue execution of the process
+             ctx->gpr[0]=fd;
+            ctx->gpr[1]=(uint32_t)x;
+            ctx->gpr[2]=n;
+            ctx->pc-=4;   //decrement the program counter by 4 so that the program will run write again when it has been unblocked
+            schedule(ctx);  //call the scheduler to execute another process until this one has been unblocked}
+            break;
+            }
+          
+          memcpy(p->write,x,sizeof(char));
 
+          p->write++;
+          x++;
+          
+          n--;
+          p->wunblock=false;
+          p->runblock=true;
+          
+          }
 
-        if((p->end - p->write)>n*4){  //check buffer has enough space
-          memcpy(p->write,x,n*4);   //copy string into the buffer
-          p->write+=n*4;//update the point at which it writes to the buffer
         }
-        else if(n*4<64){   //if an empty buffer would have enough space for the string:
-          executing->status=STATUS_WAITING;  //set status to waiting, blocking the process from continuing
-          executing->blocking=p; //update the process table with which pipe is blocking, the scheduler can check this to determine whether to continue execution of the process
-          ctx->pc-=4;   //decrement the program counter by 4 so that the program will run write again when it has been unblocked
-          schedule(ctx);  //call the scheduler to execute another process until this one has been unblocked
-        }
 
-         break;
+       
 
 
-      }
+      
       
       
       ctx->gpr[ 0 ] = n;
+      
 
       break;
-    }
-
+      
+    }}
+    
+    
 
     case 0x02:{  //read
+      int   fd = ( int   )( ctx->gpr[ 0 ] );  
+      char*  x = ( char* )( ctx->gpr[ 1 ] );  
+      int    n = ( int   )( ctx->gpr[ 2 ] );
+      pipePointers* p=(pipePointers*) fd; //interpreting file descriptor as a struct, this is probably not the right way to do it but couldn't think of a better way to track how full the buffer was
+
+      int origN=n;
+
+      
+      while(n>0){
+        if(p->read==p->write ){ //if p has read to the end of the readable buffer but read less than the number of requested characters
+          p->read=p->start;
+          p->write=p->read;
+          executing->status=STATUS_WAITING;  //set status to waiting, blocking the process from continuing
+          procTab[executing->pid]->status=STATUS_WAITING;
+            executing->rblocking=p; //update the process table with which pipe is blocking, the scheduler can check this to determine whether to continue execution of the process
+            p->runblock=false;
+            p->wunblock=true;
+            ctx->pc-=4;
+            ctx->gpr[0]=fd;
+            ctx->gpr[1]=(uint32_t)x;
+            ctx->gpr[2]=n;
+            
+            schedule(ctx);  //call the scheduler to execute another process until this one has been unblocked
+            break;
+        }
+        memcpy(x,p->read,sizeof(char));
+        n--;
+        p->read++;
+        x++;
+        
+      }
 
 
-
+      break;
     }
 
     case 0x03:{  //fork
@@ -320,13 +391,36 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
 
     case 0x07:{}
 
+    case 0x08:{
+      
+        //malloc struct for returning read/write pointers of pipe
+        pipePointers* p =(pipePointers*) malloc(sizeof(pipePointers));
+        
+        //malloc pipe buffer
+        
+        p->read=malloc(64);
+        p->write=p->read;
+        p->start=p->read;
+        p->wunblock=false;
+        p->runblock=false;
+        p->end=p->read+64;
+        ctx->gpr[0]=(uint32_t)p;
+
+
+
+
+
+    }
     
 
 
     default   : { // 0x?? => unknown/unsupported
       break;
     }
-  }
+  
 
   return;
+  
+
+  }
 }
