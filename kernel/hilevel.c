@@ -287,7 +287,10 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
           if(p->write==p->end){
             executing->status=STATUS_WAITING;  //set status to waiting, blocking the process from continuing
             executing->wblocking=p; //update the process table with which pipe is blocking, the scheduler can check this to determine whether to continue execution of the process
-             ctx->gpr[0]=fd;
+            p->wunblock=false;
+            p->runblock=true;
+            
+            ctx->gpr[0]=fd;
             ctx->gpr[1]=(uint32_t)x;
             ctx->gpr[2]=n;
             ctx->pc-=4;   //decrement the program counter by 4 so that the program will run write again when it has been unblocked
