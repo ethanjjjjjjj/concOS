@@ -38,7 +38,7 @@ void dispatch( ctx_t* ctx, pcb_t* prev, pcb_t* next ) {
   return;
 }
 
-void increasePriorities(ctx_t* ctx){
+void increasePriorities(ctx_t* ctx){   //periodically increase the priorities of the processes that are not currently executing
   for(int i=0;i<PROC_TABLE_SIZE;i++){
     if(procTab[ i]->status == STATUS_READY){
       procTab[i]->priority++;
@@ -60,7 +60,7 @@ void schedule( ctx_t* ctx ) {
 
   for(int i=0;i<CURRENT_PROCS;i++){     //loop through whole process table
     
-    if((procTab[i]->status)==STATUS_WAITING){
+    if((procTab[i]->status)==STATUS_WAITING){   //changes process staus from waiting to ready if the pipe has given a signal
 
       if(procTab[i]->rblocking!=NULL && procTab[i]->rblocking->runblock){
         procTab[i]->rblocking->runblock=false;
@@ -355,11 +355,11 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       procTab[CURRENT_PROCS]->status=STATUS_READY;  //set status of new process to ready
       memcpy(&procTab[CURRENT_PROCS]->ctx,ctx,sizeof(ctx_t)); //copies the current executing context to the new process
       procTab[CURRENT_PROCS]->ctx.gpr[0]=0; //sets the return value for the new process to 0 indicating that it is a child
-      procTab[CURRENT_PROCS]->ctx.sp= (ctx->sp)-(0x00001000*(CURRENT_PROCS-executing->pid)); //allocates a new stack space for the new process
-      procTab[CURRENT_PROCS]->tos=procTab[CURRENT_PROCS-1]->tos-0x00001000;
+      procTab[CURRENT_PROCS]->ctx.sp= (ctx->sp)-(0x00001000*(CURRENT_PROCS-executing->pid)); //set the correct stack pointer for the new process
+      procTab[CURRENT_PROCS]->tos=procTab[CURRENT_PROCS-1]->tos-0x00001000;  //set the correct tos for new process
 
       
-      memcpy(executing->tos,procTab[CURRENT_PROCS]->tos,0x00001000);
+      memcpy(executing->tos,procTab[CURRENT_PROCS]->tos,0x00001000);  //copy the stack of the executing process
       ctx->gpr[0]=CURRENT_PROCS;
       procTab[CURRENT_PROCS]->pid=CURRENT_PROCS;
       CURRENT_PROCS++;
@@ -390,13 +390,13 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
         
         //malloc pipe buffer
         
-        p->read=malloc(64);
-        p->write=p->read;
+        p->read=malloc(64);   //allocates 64 addresses for the buffer
+        p->write=p->read;   
         p->start=p->read;
-        p->wunblock=false;
+        p->wunblock=false;  //flags for whether this pipe is blocked from reading or writing
         p->runblock=false;
         p->end=p->read+64;
-        ctx->gpr[0]=(uint32_t)p;
+        ctx->gpr[0]=(uint32_t)p; //returns the address of the new struct
 
 
 
