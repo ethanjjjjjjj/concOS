@@ -147,19 +147,19 @@ void nice( int pid, int x ) {
 
   return;
 }
+pipePointers*  pipe() {
+  pipePointers* r;
 
+  asm volatile( "svc %1     \n" // make system call SYS_FORK
+                "mov %0, r0 \n" // assign r  = r0 
+              : "=r" (r) 
+              : "I" (SYS_PIPE)
+              : "r0" );
 
-
-pipePointers* pipe(){
-  //malloc struct for returning read/write pointers of pipe
-   pipePointers* p =(pipePointers*) malloc(sizeof(pipePointers));
-  
-  //malloc pipe buffer
-  p->read,p->write=malloc(64);
-  p->unblock=0;
-  p->end=p->read+64;
-  return p;
-
+  return r;
 }
+
+
+
 
 

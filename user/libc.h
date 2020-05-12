@@ -38,6 +38,8 @@ typedef int pid_t;
 #define SYS_EXEC      ( 0x05 )
 #define SYS_KILL      ( 0x06 )
 #define SYS_NICE      ( 0x07 )
+#define SYS_PIPE      ( 0x08 )
+
 
 #define SIG_TERM      ( 0x00 )
 #define SIG_QUIT      ( 0x01 )
@@ -51,19 +53,22 @@ typedef int pid_t;
 
 
 typedef struct{
-    int read;
-    int write;
-    int end;
-    bool unblock;
+    uint32_t* read;
+    uint32_t* write;
+    uint32_t* end;
+    uint32_t* start;
+    bool runblock;
+    bool wunblock;
+    
 
 }pipePointers;
 
 
 
 // convert ASCII string x into integer r
-extern int  atoi( char* x        );
+//extern int  atoi( char* x        );
 // convert integer x into ASCII string r
-extern void itoa( char* r, int x );
+//extern void itoa( char* r, int x );
 
 // cooperatively yield control of processor, i.e., invoke the scheduler
 extern void yield();
@@ -85,7 +90,7 @@ extern int  kill( pid_t pid, int x );
 // for process identified by pid, set  priority to x
 extern void nice( pid_t pid, int x );
 
-
+extern pipePointers* pipe();
 
 
 
