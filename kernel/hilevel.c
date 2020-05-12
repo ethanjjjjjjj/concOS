@@ -11,15 +11,6 @@
 #include <limits.h>
 
 
-/* We assume there will be two user processes, stemming from execution of the 
- * two user programs P1 and P2, and can therefore
- * 
- * - allocate a fixed-size process table (of PCBs), and then maintain an index 
- *   into it to keep track of the currently executing process, and
- * - employ a fixed-case of round-robin scheduling: no more processes can be 
- *   created, and neither can be terminated, so assume both are always ready
- *   to execute.
- */
 
 pcb_t* procTab[ PROC_TABLE_SIZE ]; pcb_t* executing = NULL;
 
@@ -101,13 +92,7 @@ void schedule( ctx_t* ctx ) {
     highestProc->status=STATUS_EXECUTING;
     dispatch(ctx,executing,highestProc);
   }
-  /*else if(executing->status==STATUS_WAITING){ //if current process is waiting and there is nothing else to run wait for scheduler to call again
 
-    for (;;) {
-        sleep(UINT_MAX); //sleep as there is no process to 
-    }
-  
-  }*/
   
 
   
@@ -272,15 +257,15 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       int   fd = ( int   )( ctx->gpr[ 0 ] );  
       char*  x = ( char* )( ctx->gpr[ 1 ] );  
       int    n = ( int   )( ctx->gpr[ 2 ] ); 
-      switch (fd){
-        case 1:{
+    
+        if(fd==1){
           for( int i = 0; i < n; i++ ) {
         PL011_putc( UART0, *x++, true );
         }
-        break;
+        
 
       }      
-      default:{
+      else{
         pipePointers* p=(pipePointers*) fd;
         int origN=n;
         while(n>0){
@@ -298,7 +283,7 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
             break;
             }
           
-          memcpy(p->write,x,sizeof(char));
+          memcpy(p->write,x,1);
 
           p->write++;
           x++;
@@ -321,8 +306,7 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       
 
       break;
-      
-    }}
+    }
     
     
 
@@ -353,6 +337,7 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
             break;
         }
         memcpy(x,p->read,sizeof(char));
+        
         n--;
         p->read++;
         x++;
@@ -365,12 +350,16 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
 
     case 0x03:{  //fork
       //realloc(&procTab,CURRENT_PROCS+1);
-      procTab[CURRENT_PROCS]=(pcb_t*)malloc(sizeof(pcb_t));  
-      memcpy(procTab[CURRENT_PROCS],executing,sizeof(pcb_t));
-      procTab[CURRENT_PROCS]->status=STATUS_READY;
-      memcpy(&procTab[CURRENT_PROCS]->ctx,ctx,sizeof(ctx_t));
-      procTab[CURRENT_PROCS]->ctx.gpr[0]=0;
-      procTab[CURRENT_PROCS]->ctx.sp= (procTab[CURRENT_PROCS-1]->ctx.sp)-0x00001000;
+      procTab[CURRENT_PROCS]=(pcb_t*)malloc(sizeof(pcb_t));    //allocates space for a new process table entry
+      memcpy(procTab[CURRENT_PROCS],executing,sizeof(pcb_t)); //copies the current process into the new entry
+      procTab[CURRENT_PROCS]->status=STATUS_READY;  //set status of new process to ready
+      memcpy(&procTab[CURRENT_PROCS]->ctx,ctx,sizeof(ctx_t)); //copies the current executing context to the new process
+      procTab[CURRENT_PROCS]->ctx.gpr[0]=0; //sets the return value for the new process to 0 indicating that it is a child
+      procTab[CURRENT_PROCS]->ctx.sp= (ctx->sp)-(0x00001000*(CURRENT_PROCS-executing->pid)); //allocates a new stack space for the new process
+      procTab[CURRENT_PROCS]->tos=procTab[CURRENT_PROCS-1]->tos-0x00001000;
+
+      
+      memcpy(executing->tos,procTab[CURRENT_PROCS]->tos,0x00001000);
       ctx->gpr[0]=CURRENT_PROCS;
       procTab[CURRENT_PROCS]->pid=CURRENT_PROCS;
       CURRENT_PROCS++;
@@ -397,7 +386,7 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
     case 0x08:{
       
         //malloc struct for returning read/write pointers of pipe
-        pipePointers* p =(pipePointers*) malloc(sizeof(pipePointers));
+        pipePointers* p =(pipePointers*) malloc(sizeof(pipePointers));  //funcion for allocating pipe
         
         //malloc pipe buffer
         

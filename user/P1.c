@@ -13,19 +13,19 @@ void main_P1() {
   int pid=fork();
   
   
-   
+   int n=17;
   
   if(pid!=0){
 
-    char *x=(char*)malloc(41*4);
-    read((uint32_t)p,x,21);
-    write(STDOUT_FILENO,"read:",6);
-    write(STDOUT_FILENO,x,41);
+    char *x=(char*)malloc(n*sizeof(char));
+    read((uint32_t)p,x,n);//should attempt to read and then block while waiting for something to be written to the pipe 
+    write(STDOUT_FILENO,"read:",6);   
+    write(STDOUT_FILENO,x,n);
   }
   else if(pid==0){
     //write(STDOUT_FILENO,"writing",8);
     write(STDOUT_FILENO,"written P1",11);
-    write((uint32_t)p,"P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1P1", 41 );
+    write((uint32_t)p,"P1P1P1P1P1P1P1P1", n );   //writes a string to the pipe
   }
   
 
